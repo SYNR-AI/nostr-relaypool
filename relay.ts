@@ -5,7 +5,7 @@
 
 import {type Event, verifySignature, validateEvent} from "nostr-tools";
 import {type Filter, matchFilters} from "nostr-tools";
-import WebSocket from "isomorphic-ws";
+// import WebSocket from "isomorphic-ws";
 import {getHex64, getSubName} from "./fakejson";
 
 type RelayEvent = "connect" | "disconnect" | "error" | "notice" | "auth";
