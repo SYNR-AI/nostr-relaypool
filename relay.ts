@@ -126,7 +126,9 @@ class RelayC {
   reconnectTimeout: number = 0;
   #reconnect() {
     setTimeout(() => {
-      this.reconnectTimeout = Math.max(2000, this.reconnectTimeout * 3);
+      this.reconnectTimeout = 3000;
+
+      // this.reconnectTimeout = Math.max(2000, this.reconnectTimeout * 3);
       console.log(
         this.url,
         "reconnecting after " + this.reconnectTimeout / 1000 + "s"
@@ -225,6 +227,8 @@ class RelayC {
     }
   }
   #onopen(opened: () => void) {
+    this.reconnectTimeout = 0;
+
     if (this.resolveClose) {
       this.resolveClose();
       return;
@@ -233,9 +237,16 @@ class RelayC {
     // this.reconnectTimeout = 0;
     // TODO: Send ephereal messages after subscription, permament before
     for (const subid in this.openSubs) {
+      for (const filter of this.openSubs[subid].filters) {
+        if (filter.since) {
+          const twoMinuteAgo = Math.floor(Date.now() / 1000) - 2 * 60;
+          filter.since = twoMinuteAgo;
+        }
+      }
       if (this.logging) {
         console.log("REQ", this.url, subid, ...this.openSubs[subid].filters);
       }
+
       this.trySend(["REQ", subid, ...this.openSubs[subid].filters]);
     }
     for (const msg of this.sendOnConnect) {
@@ -273,7 +284,11 @@ class RelayC {
   async connect(): Promise<void> {
     if (this.ws?.readyState && this.ws.readyState < 2) return; // ws already open or connecting
     if (this.ws?.readyState === 2) {
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch (e) {
+        console.info('connect readyState ws close error', e )
+      }
     }
     this.ws = undefined;
     await this.connectRelay();
@@ -307,7 +322,11 @@ class RelayC {
   }
   close(): Promise<void> {
     this.closedByClient = true;
-    this.ws?.close();
+    try {
+      this.ws?.close();
+    } catch (e) {
+      console.info('ws close error', e )
+    }
     return new Promise<void>((resolve) => {
       this.resolveClose = resolve;
     });
